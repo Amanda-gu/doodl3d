@@ -476,7 +476,7 @@ function buildFromContour(imgData){
   const pxd=imgData.data;
 
   // Sample grid
-  const RES=96;
+  const RES=64;
   const gw=RES, gh=Math.max(4,Math.round(RES*(bbox.h/bbox.w)));
   const grid=new Uint8Array(gw*gh);
   for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){
@@ -485,179 +485,34 @@ function buildFromContour(imgData){
     if(px>=0&&px<sw&&py>=0&&py<sh&&pxd[(py*sw+px)*4+3]>20) grid[gy*gw+gx]=1;
   }
 
-  // Find stroke centerline pixels by looking for the midpoint of each run
-  // Scan both horizontally and vertically, take the midpoints as skeleton
-  const skelSet=new Set();
-  const skey=(x,y)=>y*gw+x;
-
-  // Horizontal scan — find center of each horizontal run
-  for(let gy=0;gy<gh;gy++){
-    let runStart=-1;
-    for(let gx=0;gx<=gw;gx++){
-      const on=gx<gw&&grid[gy*gw+gx];
-      if(on&&runStart<0) runStart=gx;
-      else if(!on&&runStart>=0){
-        const mid=Math.round((runStart+gx-1)/2);
-        skelSet.add(skey(mid,gy));
-        runStart=-1;
-      }
-    }
-  }
-  // Vertical scan — find center of each vertical run
+  // Scan columns for top and bottom boundary points
+  const topPts=[], botPts=[];
   for(let gx=0;gx<gw;gx++){
-    let runStart=-1;
-    for(let gy=0;gy<=gh;gy++){
-      const on=gy<gh&&grid[gy*gw+gx];
-      if(on&&runStart<0) runStart=gy;
-      else if(!on&&runStart>=0){
-        const mid=Math.round((runStart+gy-1)/2);
-        skelSet.add(skey(gx,mid));
-        runStart=-1;
-      }
-    }
+    let top=-1,bot=-1;
+    for(let gy=0;gy<gh;gy++){ if(grid[gy*gw+gx]&&top<0) top=gy; if(grid[gy*gw+gx]) bot=gy; }
+    if(top>=0){ topPts.push({x:gx/gw,y:top/gh}); botPts.push({x:gx/gw,y:bot/gh}); }
   }
 
-  // Convert skeleton set to grid
-  const skel=new Uint8Array(gw*gh);
-  skelSet.forEach(k=>{ skel[k]=1; });
-
-  // Walk connected chains through the skeleton (8-connected)
-  const visited=new Uint8Array(gw*gh);
-  const dirs8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-  const chains=[];
-
-  for(let gy=0;gy<gh;gy++) for(let gx=0;gx<gw;gx++){
-    if(!skel[gy*gw+gx]||visited[gy*gw+gx]) continue;
-    // BFS to collect connected component, then order it as a path
-    const component=[];
-    const queue=[[gx,gy]];
-    visited[gy*gw+gx]=1;
-    while(queue.length){
-      const [x,y]=queue.shift();
-      component.push([x,y]);
-      for(const [dx,dy] of dirs8){
-        const nx=x+dx,ny=y+dy;
-        if(nx>=0&&nx<gw&&ny>=0&&ny<gh&&skel[ny*gw+nx]&&!visited[ny*gw+nx]){
-          visited[ny*gw+nx]=1;
-          queue.push([nx,ny]);
-        }
-      }
-    }
-    if(component.length<2) continue;
-    // Order component as a path: start from an endpoint (pixel with only 1 neighbor in skeleton)
-    // Find endpoints first
-    const compSet=new Set(component.map(([x,y])=>skey(x,y)));
-    let endPt=component[0];
-    for(const [x,y] of component){
-      let n=0;
-      for(const [dx,dy] of dirs8){const nx=x+dx,ny=y+dy;if(compSet.has(skey(nx,ny)))n++;}
-      if(n<=1){endPt=[x,y];break;}
-    }
-    // Greedy path walk from endpoint
-    const path=[];
-    const pathVisited=new Set();
-    let cur=endPt;
-    while(cur){
-      path.push(cur);
-      pathVisited.add(skey(cur[0],cur[1]));
-      let next=null;
-      for(const [dx,dy] of dirs8){
-        const nx=cur[0]+dx,ny=cur[1]+dy;
-        const k=skey(nx,ny);
-        if(compSet.has(k)&&!pathVisited.has(k)){next=[nx,ny];break;}
-      }
-      cur=next;
-    }
-    if(path.length>=2) chains.push(path);
+  if(topPts.length<3){
+    // Degenerate — use bbox rect
+    const shape=new THREE.Shape();
+    shape.moveTo(-100,-100);shape.lineTo(100,-100);shape.lineTo(100,100);shape.lineTo(-100,100);shape.closePath();
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:8,bevelEnabled:true,bevelThickness:2,bevelSize:1.5,bevelSegments:4});
+    placeModel(geo); return;
   }
 
-  if(chains.length===0){ buildFallbackTube(); return; }
+  // Build silhouette: top contour left→right, bottom contour right→left
+  const mx=x=>(x-0.5)*200, my=y=>-(y-0.5)*200*(bbox.h/bbox.w);
+  const shape=new THREE.Shape();
+  shape.moveTo(mx(topPts[0].x), my(topPts[0].y));
+  topPts.forEach(p=>shape.lineTo(mx(p.x), my(p.y)));
+  for(let i=botPts.length-1;i>=0;i--) shape.lineTo(mx(botPts[i].x), my(botPts[i].y));
+  shape.closePath();
 
-  // Convert grid coords → world space (-100..+100)
-  const toX=gx=>(gx/gw-0.5)*200;
-  const toY=gy=>-((gy/gh-0.5)*200*(bbox.h/bbox.w));
-
-  // Estimate tube radius from stroke width
-  // Measure average stroke width by sampling the grid
-  let totalWidth=0,widthCount=0;
-  for(let gy=0;gy<gh;gy++){
-    let runLen=0;
-    for(let gx=0;gx<=gw;gx++){
-      if(gx<gw&&grid[gy*gw+gx]) runLen++;
-      else if(runLen>0){totalWidth+=runLen;widthCount++;runLen=0;}
-    }
-  }
-  const avgWidthPx=widthCount>0?totalWidth/widthCount:4;
-  const tubeR=Math.max(2,(avgWidthPx/gw)*100); // in -100..+100 space
-
-  // Build merged geometry from all chain tubes
-  const geos=[];
-  const mat=makeMat(txMode,savedColor);
-
-  for(const path of chains){
-    if(path.length<2) continue;
-    // Subsample long chains
-    const step=Math.max(1,Math.floor(path.length/60));
-    const pts=path.filter((_,i)=>i%step===0||i===path.length-1);
-    const v3=pts.map(([x,y])=>new THREE.Vector3(toX(x),toY(y),0));
-    // Add tiny z-jitter to avoid degenerate curves
-    v3.forEach((v,i)=>v.z=(i%2===0?0.01:-0.01));
-    const closed=false;
-    const curve=new THREE.CatmullRomCurve3(v3,closed,'centripetal',0.5);
-    const segs=Math.max(4,pts.length*2);
-    try{
-      const g=new THREE.TubeGeometry(curve,segs,tubeR,6,closed);
-      geos.push(g);
-    }catch(e){}
-  }
-
-  if(geos.length===0){ buildFallbackTube(); return; }
-
-  // Merge all tube geometries into one
-  const merged=mergeGeos(geos);
-  geos.forEach(g=>g.dispose());
-
-  placeModel(merged);
-}
-
-// Simple geometry merger (copies buffer attributes)
-function mergeGeos(geos){
-  let totalVerts=0,totalIdx=0;
-  geos.forEach(g=>{totalVerts+=g.attributes.position.count;totalIdx+=g.index?g.index.count:0;});
-  const positions=new Float32Array(totalVerts*3);
-  const normals=new Float32Array(totalVerts*3);
-  const uvs=new Float32Array(totalVerts*2);
-  const indices=[];
-  let vOff=0,iOff=0;
-  for(const g of geos){
-    const pos=g.attributes.position.array;
-    const nor=g.attributes.normal?.array;
-    const uv=g.attributes.uv?.array;
-    positions.set(pos,vOff*3);
-    if(nor) normals.set(nor,vOff*3);
-    if(uv) uvs.set(uv,vOff*2);
-    if(g.index){
-      const idx=g.index.array;
-      for(let i=0;i<idx.length;i++) indices.push(idx[i]+vOff);
-    }
-    vOff+=g.attributes.position.count;
-  }
-  const out=new THREE.BufferGeometry();
-  out.setAttribute('position',new THREE.BufferAttribute(positions,3));
-  out.setAttribute('normal',new THREE.BufferAttribute(normals,3));
-  out.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
-  if(indices.length) out.setIndex(indices);
-  return out;
-}
-
-function buildFallbackTube(){
-  // Single straight tube as last resort
-  const curve=new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-80,0,0),new THREE.Vector3(0,20,0),new THREE.Vector3(80,0,0)
-  ]);
-  const geo=new THREE.TubeGeometry(curve,20,8,8,false);
+  const geo=new THREE.ExtrudeGeometry(shape,{depth:8,bevelEnabled:true,bevelThickness:2,bevelSize:1.5,bevelSegments:4});
   placeModel(geo);
 }
+
 
 // ─────────────────────────────────────────
 // SVG PATH PARSER
