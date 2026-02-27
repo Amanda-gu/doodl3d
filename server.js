@@ -19,7 +19,7 @@ const path = require('path');
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const PORT = 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
-// ──────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const server = http.createServer((req, res) => {
   // CORS headers — allow the browser page to call back to this server
