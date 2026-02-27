@@ -884,10 +884,10 @@ function showShare(url, type){
   const title=document.getElementById('share-card-title');
   if(type==='image'){
     img.src=url; img.classList.add('show'); vid.classList.remove('show');
-    title.textContent='Your squish! 📸';
+    title.textContent='Your doodle! 📸';
   } else {
     vid.src=url; vid.classList.add('show'); img.classList.remove('show');
-    title.textContent='Your squish video! 🎥';
+    title.textContent='Your doodle video! 🎥';
   }
   overlay.classList.add('show');
 }
@@ -900,7 +900,7 @@ function closeShare(){
 }
 
 function makeShareCard(sourceCanvas){
-  // Bake branded card: screenshot + squish3d watermark
+  // Bake branded card: screenshot + doodl3d watermark
   const w=sourceCanvas.width, h=sourceCanvas.height;
   const out=document.createElement('canvas');
   out.width=w; out.height=h;
@@ -922,7 +922,7 @@ function makeShareCard(sourceCanvas){
   ctx.fillStyle='rgba(255,255,255,0.92)';
   ctx.font=`bold ${Math.round(w*0.04)}px Fredoka, sans-serif`;
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  ctx.fillText('squish3d',bx+br+8,by);
+  ctx.fillText('doodl3d',bx+br+8,by);
   return out;
 }
 
@@ -933,7 +933,7 @@ function downloadCapture(){
     const ext = capturedType.includes('mp4') ? 'mp4' : 'webm';
     const a=document.createElement('a');
     a.href=URL.createObjectURL(capturedBlob);
-    a.download=`squish3d.${ext}`;
+    a.download=`doodl3d.${ext}`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   } else {
     // Bake branding into the photo
@@ -947,7 +947,7 @@ function downloadCapture(){
       branded.toBlob(b=>{
         const a=document.createElement('a');
         a.href=URL.createObjectURL(b);
-        a.download='squish3d.png';
+        a.download='doodl3d.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
       },'image/png');
     };
@@ -960,14 +960,14 @@ async function webShare(){
   const ext = isVideo ? 'mp4' : 'png';
   const shareMime = isVideo ? 'video/mp4' : 'image/png';
   const blob = (capturedBlob.type === shareMime) ? capturedBlob : new Blob([capturedBlob],{type:shareMime});
-  const file = new File([blob], `squish3d.${ext}`, {type: shareMime});
+  const file = new File([blob], `doodl3d.${ext}`, {type: shareMime});
 
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({
         files:[file],
-        title:'My Squish3D creation! 🍬',
-        text:'Made with Squish3D'
+        title:'My doodl3d creation! 🍬',
+        text:'Made with doodl3d'
       });
     }catch(e){
       if(e.name!=='AbortError') downloadCapture();
@@ -975,7 +975,7 @@ async function webShare(){
   } else if(navigator.share){
     // Fallback: share URL only
     try{
-      await navigator.share({title:'My Squish3D creation! 🍬', text:'Made with Squish3D'});
+      await navigator.share({title:'My doodl3d creation! 🍬', text:'Made with doodl3d'});
     }catch(e){ downloadCapture(); }
   } else {
     // Desktop fallback — just download

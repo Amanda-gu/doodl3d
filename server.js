@@ -78,5 +78,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🍬 Squish3D running at http://localhost:${PORT}\n`);
+  console.log(`\n🍬 doodl3d running at http://localhost:${PORT}\n`);
 });
