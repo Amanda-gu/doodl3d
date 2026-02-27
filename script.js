@@ -288,7 +288,7 @@ async function makeIt3D(){
   dctx.clearRect(0,0,dc.width,dc.height);
   hasDrawn=false;
 
-  showLoading('✨ Bringing your creature to life…');
+  showLoading('This may take a few seconds...');
   initThree();
 
   let built=false;
