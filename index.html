@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Squish3D 🍬</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div id="stage">
+  <canvas id="draw-canvas"></canvas>
+  <canvas id="three-canvas"></canvas>
+
+  <div id="draw-hint">
+    <span class="dh-emoji">🖊️</span>
+    <div class="dh-txt">draw anything!</div>
+  </div>
+
+  <header>
+    <div class="logo">
+      <div class="logo-blob">🍬</div>
+      <div class="logo-name">squish<em>3d</em></div>
+    </div>
+  </header>
+
+  <div id="toolbar">
+    <div class="colors" style="justify-content:center">
+      <div class="sw on" data-c="#e05c8a" style="background:#e05c8a" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#e07038" style="background:#e07038" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#c9a412" style="background:#c9a412" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#3aaa60" style="background:#3aaa60" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#2980d4" style="background:#2980d4" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#9b42d4" style="background:#9b42d4" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#3d2b22" style="background:#3d2b22" onclick="setCol(this)"></div>
+      <div class="sw" data-c="#ffffff" style="background:#fff;border-color:#ccc" onclick="setCol(this)"></div>
+    </div>
+    <div class="tool-row" style="justify-content:center">
+      <button class="tbtn on" id="tb-pen" onclick="setTool('pen')">✏️ Pen</button>
+      <button class="tbtn" id="tb-fill" onclick="setTool('fill')">🪣 Fill</button>
+      <button class="tbtn" id="tb-erase" onclick="setTool('erase')">🧹 Erase</button>
+      <button class="tbtn" onclick="clearAll()">🗑️</button>
+      <div class="sz-row">
+        <input type="range" min="2" max="30" value="6" id="sz"
+          oninput="brushSz=+this.value;document.getElementById('szv').textContent=this.value"/>
+        <span id="szv">6</span>
+      </div>
+    </div>
+    <button id="go-btn" onclick="makeIt3D()">✨ Squish it!</button>
+  </div>
+
+  <div id="view-controls">
+    <div id="tex-strip" style="justify-content:center">
+      <span class="tex-lbl">skin ✦</span>
+      <div class="tx on" data-tx="clay" onclick="setTex(this)">🪄<span>clay</span></div>
+      <div class="tx" data-tx="fur" onclick="setTex(this)">🐻<span>fur</span></div>
+      <div class="tx" data-tx="metal" onclick="setTex(this)">🪙<span>metal</span></div>
+      <div class="tx" data-tx="rainbow" onclick="setTex(this)">🌈<span>rainbow</span></div>
+    </div>
+    <!-- capture mode toggle -->
+    <div class="cap-row">
+      <button class="cap-mode-btn on" id="mode-photo" onclick="setCapMode('photo')">📷 Photo</button>
+      <div id="capture-btn" onclick="handleCapture()">
+        <div class="inner"></div>
+        <div id="rec-timer"></div>
+      </div>
+      <button class="cap-mode-btn" id="mode-video" onclick="setCapMode('video')">🎥 Video</button>
+    </div>
+    <div class="view-row" style="justify-content:center">
+      <button id="back-btn" onclick="backToDraw()">← Draw again</button>
+      <div id="drag-hint">👆 drag to spin</div>
+    </div>
+  </div>
+
+  <!-- share card overlay -->
+  <div id="share-overlay">
+    <div id="share-card">
+      <div id="share-card-media">
+        <img id="share-card-img" alt="squish3d capture"/>
+        <video id="share-card-vid" autoplay loop muted playsinline></video>
+        <div id="share-card-brand">
+          <div class="brand-dot">🍬</div>
+          <span class="brand-name">squish<em>3d</em></span>
+        </div>
+      </div>
+      <div id="share-card-actions">
+        <p class="share-card-title" id="share-card-title">Your squish! 🍬</p>
+        <div class="share-card-btns">
+          <button class="sc-btn sc-save" onclick="downloadCapture()">⬇ Save</button>
+          <button class="sc-btn sc-share" onclick="webShare()">↗ Share</button>
+        </div>
+        <button class="sc-close" onclick="closeShare()">✕ close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="ld-ball">✨</div>
+    <div class="ld-title">Squishing your creature…</div>
+    <div class="ld-sub" id="ld-sub">Claude is reading your drawing</div>
+    <div class="ld-dots"><span>•</span><span>•</span><span>•</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
