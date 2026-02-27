@@ -99,15 +99,18 @@ function dominantColor(){
 // API
 // ─────────────────────────────────────────
 async function claudeAPI(body){
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+  const res=await fetch('/api',{
     method:'POST',
     headers:{
-      'Content-Type':'application/json',
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
+      'Content-Type':'application/json'
     },
     body:JSON.stringify(body)
   });
+  if(!res.ok){
+    const txt=await res.text();
+    console.error('API error',res.status,txt);
+    throw new Error('API '+res.status);
+  }
   return res.json();
 }
 function initThree(){
@@ -291,7 +294,7 @@ async function makeIt3D(){
   let built=false;
   try{
     const resp=await claudeAPI({
-      model:'claude-sonnet-4-20250514',
+      model:'claude-sonnet-4-6',
       max_tokens:3500,
       messages:[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:'image/png',data:b64}},

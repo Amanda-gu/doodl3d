@@ -18,15 +18,8 @@ const path = require('path');
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const PORT = 3000;
-const API_KEY = process.env.ANTHROPIC_API_KEY || 's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';
+const API_KEY = process.env.ANTHROPIC_API_KEY || '';
 // ──────────────────────────────────────────────────────────────────────────────
-
-if (API_KEY === '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') {
-  console.error('\n⚠️  No API key set!');
-  console.error('   Set it in server.js or run:');
-  console.error('   ANTHROPIC_API_KEY=sk-ant-... node server.js\n');
-  process.exit(1);
-}
 
 const server = http.createServer((req, res) => {
   // CORS headers — allow the browser page to call back to this server
