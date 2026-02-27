@@ -18,10 +18,10 @@ const path = require('path');
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const PORT = 3000;
-const API_KEY = process.env.ANTHROPIC_API_KEY || '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';
+const API_KEY = process.env.ANTHROPIC_API_KEY || 's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';
 // ──────────────────────────────────────────────────────────────────────────────
 
-if (API_KEY === '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') {
+if (API_KEY === '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') {
   console.error('\n⚠️  No API key set!');
   console.error('   Set it in server.js or run:');
   console.error('   ANTHROPIC_API_KEY=sk-ant-... node server.js\n');
@@ -71,7 +71,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ── Static files ───────────────────────────────────────────────────────────
-  let filePath = req.url === '/' ? '/squish3d.html' : req.url;
+  let filePath = req.url === '/' ? '/index.html' : req.url;
   filePath = path.join(__dirname, filePath);
 
   const ext = path.extname(filePath);
